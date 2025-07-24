@@ -4,8 +4,7 @@ from . import views
 
 app_name = 'heroes'
 urlpatterns = [
-    path('detail/', views.hero_detail, name='detail'),
+    path('', views.hero_detail, name='detail'), # Главная страница модуля
+    path('detail/data/', views.hero_detail_data, name='detail_data'), # Для AJAX
     path('action/<str:action_type>/', views.hero_action, name='action'),
-    # path('action/lightning/', views.hero_lightning, name='lightning'),
-    # path('action/speech/', views.hero_speech, name='speech'),
 ]
