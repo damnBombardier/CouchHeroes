@@ -36,4 +36,22 @@ CACHES = {
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
 
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'accounts', # Наше приложение для аккаунтов
+    'heroes',   # Наше приложение для героев
+    # 'events',   # Будущее приложение для событий
+    # 'game_engine', # Модуль движка (не обязательно как приложение)
+]
+
+# ...
+# LOGIN_REDIRECT_URL и LOGOUT_REDIRECT_URL
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
 # ... остальные настройки ...
