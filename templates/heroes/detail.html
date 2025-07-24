@@ -7,17 +7,21 @@
 <h1>Ваш герой: {{ hero.name }}</h1>
 
 <div class="hero-stats">
-    <p>Уровень: {{ hero.level }}</p>
-    <p>Здоровье: {{ hero.health }} / {{ hero.max_health }}</p>
-    <p>Золото: {{ hero.gold }}</p>
-    <p>Опыт: {{ hero.experience }}</p>
-    <p>Состояние: {{ hero.get_state_display }}</p>
-    <p>Локация: {{ hero.location }}</p>
+    <h2>Статистика:</h2>
+    <p><strong>Уровень:</strong> {{ hero.level }}</p>
+    <p><strong>Здоровье:</strong> {{ hero.health }} / {{ hero.max_health }}</p>
+    <p><strong>Золото:</strong> {{ hero.gold }}</p>
+    <p><strong>Опыт:</strong> {{ hero.experience }}</p>
+    <p><strong>Состояние:</strong> {{ hero.get_state_display }}</p>
+    <p><strong>Локация:</strong> {{ hero.location }}</p>
+    <p><strong>Убито монстров:</strong> {{ hero.monsters_killed }}</p>
+    <p><strong>Смертей:</strong> {{ hero.deaths }}</p>
 </div>
 
 <div class="hero-log">
     <h2>Последнее действие:</h2>
-    <p>{{ last_action }}</p>
+    <p id="last-action">{{ last_action }}</p>
+    <button onclick="refreshHero()">Обновить информацию</button>
 </div>
 
 <div class="player-actions">
@@ -25,6 +29,7 @@
     <button onclick="performAction('lightning')">Бросить молнию!</button>
     <button onclick="performAction('speech', 'Ты справишься!')">Сказать: "Ты справишься!"</button>
     <button onclick="performAction('speech', 'Беги скорее!')">Сказать: "Беги скорее!"</button>
+    <button onclick="performAction('speech', 'Ищи сокровища!')">Сказать: "Ищи сокровища!"</button>
 </div>
 
 <script>
@@ -33,20 +38,52 @@ function performAction(action, message='') {
     if (message) {
         url += `?message=${encodeURIComponent(message)}`;
     }
+    
     fetch(url, {
-        method: 'POST', // Или GET, как реализовано во views
+        method: 'POST',
         headers: {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
             'Content-Type': 'application/json'
         },
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+             throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         alert(data.message);
-        // Обновить страницу или часть страницы
-        location.reload();
+        // Обновляем информацию на странице
+        refreshHero();
     })
-    .catch(error => console.error('Ошибка:', error));
+    .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Произошла ошибка при выполнении действия.');
+    });
+}
+
+function refreshHero() {
+    // Простое обновление страницы для демонстрации
+    // В реальном приложении лучше делать AJAX-запрос
+    location.reload();
+    
+    // Альтернатива: сделать AJAX-запрос к новому endpoint
+    /*
+    fetch('{% url "heroes:detail_data" %}', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Обновить DOM элементы
+        document.getElementById('last-action').innerText = data.last_action;
+        // ... обновить другие поля ...
+    })
+    .catch(error => console.error('Ошибка обновления:', error));
+    */
 }
 </script>
 {% csrf_token %}
