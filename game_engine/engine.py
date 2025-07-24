@@ -1,11 +1,9 @@
-# game_engine/engine.py
-"""
-Модуль игрового движка ZPG.
-Здесь будет логика автоматического продвижения героев.
-"""
+# game_engine/engine.py (фрагмент)
+# ... (предыдущий код)
 import random
 import logging
 from heroes.models import Hero
+from events.models import Quest, HeroQuest # Импортируем новые модели
 from django.utils import timezone
 from datetime import timedelta
 
@@ -20,7 +18,7 @@ class GameEngine:
     def process_hero_turn(hero: Hero):
         """
         Обрабатывает один "ход" героя.
-        Учитывает состояние, здоровье, опыт, уровень.
+        Учитывает состояние, здоровье, опыт, уровень, квесты.
         """
         try:
             # Герой мертв - ничего не делает
@@ -28,6 +26,28 @@ class GameEngine:
                 # Возможно, добавить шанс воскрешения или просто ждать
                 return f"{hero.name} мертв и не может действовать."
 
+            # --- Обработка квестов ---
+            # Проверим, есть ли у героя активные квесты
+            active_quests = hero.quests.filter(status='in_progress')
+            if active_quests.exists():
+                # Простая логика: герой работает над квестом
+                quest_entry = active_quests.first() # Берем первый активный
+                quest = quest_entry.quest
+                
+                # Прогресс квеста
+                progress_gain = random.randint(1, 3)
+                quest_entry.progress += progress_gain
+                quest_entry.save()
+                
+                # Проверка завершения квеста (простая логика)
+                # Предположим, квест завершается при прогрессе 10
+                if quest_entry.progress >= 10:
+                    return GameEngine._complete_quest(hero, quest_entry)
+                else:
+                    return f"{hero.name} работает над квестом '{quest.title}'. Прогресс: {quest_entry.progress}/10"
+            
+            # --- Обработка состояний ---
+            
             # Герой отдыхает - восстанавливает здоровье
             if hero.state == 'rest':
                 heal_amount = random.randint(5, 15)
@@ -87,8 +107,11 @@ class GameEngine:
                 action_log = f"{hero.name} сталкивается с монстром! Начинается бой."
             
             elif "задание" in action_log or "квест" in action_log.lower():
-                hero.state = 'quest'
-                action_log = f"{hero.name} получает новое задание!"
+                # Попытка начать новый квест
+                new_quest_log = GameEngine._start_random_quest(hero)
+                if new_quest_log:
+                    action_log = new_quest_log
+                # Если квест не начался, герой остается в состоянии приключения
             
             elif "рыбалку" in action_log:
                  # Простой пример квеста/действия
@@ -113,6 +136,63 @@ class GameEngine:
             return f"Ошибка при обработке хода героя {hero.name}"
 
     @staticmethod
+    def _start_random_quest(hero: Hero):
+        """
+        Пытается начать случайный доступный квест для героя.
+        """
+        # Найдем доступные квесты (системные или одобренные пользовательские)
+        available_quests = Quest.objects.filter(
+            required_level__lte=hero.level,
+            is_approved=True
+        ).exclude(
+            heroquest__hero=hero # Исключаем уже начатые героем
+        )
+        
+        if not available_quests.exists():
+            return None # Нет доступных квестов
+            
+        quest = random.choice(available_quests)
+        
+        # Создаем запись о квесте для героя
+        HeroQuest.objects.create(
+            hero=hero,
+            quest=quest,
+            status='in_progress',
+            started_at=timezone.now()
+        )
+        
+        return f"{hero.name} получает новое задание: '{quest.title}'!"
+
+    @staticmethod
+    def _complete_quest(hero: Hero, hero_quest: HeroQuest):
+        """
+        Завершает квест и выдает награду герою.
+        """
+        quest = hero_quest.quest
+        hero_quest.status = 'completed'
+        hero_quest.completed_at = timezone.now()
+        hero_quest.save()
+        
+        # Выдаем награду
+        hero.experience += quest.reward_experience
+        hero.gold += quest.reward_gold
+        hero.quests_completed += 1
+        hero.save()
+        
+        log = f"{hero.name} успешно завершает квест '{quest.title}'! Получено {quest.reward_experience} опыта и {quest.reward_gold} золота."
+        
+        # Проверка на уровень
+        level_up_log = GameEngine._check_level_up(hero)
+        if level_up_log:
+            log += f" {level_up_log}"
+            
+        # После завершения квеста герой снова в приключениях
+        hero.state = 'adventure'
+        hero.save()
+        
+        return log
+
+    @staticmethod
     def _check_level_up(hero: Hero):
         """
         Проверяет, набрал ли герой достаточно опыта для повышения уровня.
@@ -133,8 +213,7 @@ class GameEngine:
     @staticmethod
     def run_global_events():
         """
-        Запускает глобальные события (например, "Новогодвилль").
-        Пока заглушка.
+        Запускает глобальные события.
         """
         events = [
             "В мире наступает весна! Все герои чувствуют прилив сил.",
@@ -142,6 +221,7 @@ class GameEngine:
             "Наблюдается повышенная активность монстров. Осторожнее в путешествиях!",
             "В тавернах появляются слухи о реликтовом артефакте.",
             "Штормовое предупреждение! Герои в дороге должны быть格外 осторожны.",
+            "С Новогодвиллем! В воздухе витает праздничное настроение.",
         ]
         event = random.choice(events)
         logger.info(f"Глобальное событие: {event}")
