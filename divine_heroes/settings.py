@@ -32,9 +32,29 @@ CACHES = {
     }
 }
 
-# Celery Configuration
+# Celery Configuration (повторение для полноты картины)
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
+
+# Celery Beat Schedule
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # Обрабатываем всех героев каждые 10 минут
+    'process-all-heroes': {
+        'task': 'game_engine.tasks.process_all_heroes',
+        'schedule': 600.0, # 600 секунд = 10 минут
+    },
+    # Запускаем глобальные события каждый час
+    'run-global-events': {
+        'task': 'game_engine.tasks.run_global_events',
+        'schedule': crontab(minute=0), # Каждый час в 0 минут
+    },
+    # Можно добавить ежедневные задачи, например, воскрешение героев
+    # 'resurrect-heroes-daily': {
+    #     'task': 'game_engine.tasks.resurrect_heroes', # Нужно реализовать
+    #     'schedule': crontab(hour=3, minute=0), # Ежедневно в 3:    # },
+}
 
 INSTALLED_APPS = [
     'django.contrib.admin',
