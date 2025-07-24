@@ -1,0 +1,53 @@
+<!-- templates/heroes/detail.html -->
+{% extends 'base.html' %}
+
+{% block title %}Герой {{ hero.name }}{% endblock %}
+
+{% block content %}
+<h1>Ваш герой: {{ hero.name }}</h1>
+
+<div class="hero-stats">
+    <p>Уровень: {{ hero.level }}</p>
+    <p>Здоровье: {{ hero.health }} / {{ hero.max_health }}</p>
+    <p>Золото: {{ hero.gold }}</p>
+    <p>Опыт: {{ hero.experience }}</p>
+    <p>Состояние: {{ hero.get_state_display }}</p>
+    <p>Локация: {{ hero.location }}</p>
+</div>
+
+<div class="hero-log">
+    <h2>Последнее действие:</h2>
+    <p>{{ last_action }}</p>
+</div>
+
+<div class="player-actions">
+    <h2>Ваше вмешательство:</h2>
+    <button onclick="performAction('lightning')">Бросить молнию!</button>
+    <button onclick="performAction('speech', 'Ты справишься!')">Сказать: "Ты справишься!"</button>
+    <button onclick="performAction('speech', 'Беги скорее!')">Сказать: "Беги скорее!"</button>
+</div>
+
+<script>
+function performAction(action, message='') {
+    let url = `{% url 'heroes:action' 'ACTION_PLACEHOLDER' %}`.replace('ACTION_PLACEHOLDER', action);
+    if (message) {
+        url += `?message=${encodeURIComponent(message)}`;
+    }
+    fetch(url, {
+        method: 'POST', // Или GET, как реализовано во views
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json'
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        // Обновить страницу или часть страницы
+        location.reload();
+    })
+    .catch(error => console.error('Ошибка:', error));
+}
+</script>
+{% csrf_token %}
+{% endblock %}
