@@ -1,0 +1,41 @@
+<!-- templates/accounts/profile.html -->
+{% extends 'base.html' %}
+
+{% block title %}Профиль {{ profile_user.username }}{% endblock %}
+
+{% block content %}
+<h1>Профиль игрока: {{ profile_user.username }}</h1>
+
+{% if profile_user == user %}
+    <p><a href="{% url 'accounts:edit_profile' %}">Редактировать профиль</a></p>
+{% endif %}
+
+<div class="profile-info">
+    <p><strong>Email:</strong> {{ profile_user.email }}</p>
+    {% if profile.bio %}
+        <p><strong>Биография:</strong> {{ profile.bio }}</p>
+    {% endif %}
+    <p><strong>Премиум:</strong> {% if profile.premium_status %}Да{% else %}Нет{% endif %}</p>
+    <p><strong>Дата регистрации:</strong> {{ profile.created_at|date:"d M Y" }}</p>
+</div>
+
+<div class="hero-info">
+    <h2>Ваш герой:</h2>
+    <p><strong>Имя:</strong> <a href="{% url 'heroes:detail' %}">{{ hero.name }}</a></p>
+    <p><strong>Уровень:</strong> {{ hero.level }}</p>
+    <p><strong>Здоровье:</strong> {{ hero.health }}/{{ hero.max_health }}</p>
+    <!-- Добавить больше информации о герое -->
+</div>
+
+{% if profile.achievements.all %}
+<div class="achievements">
+    <h2>Достижения:</h2>
+    <ul>
+    {% for achievement in profile.achievements.all %}
+        <li>{{ achievement.name }} - {{ achievement.description }}</li>
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% endblock %}
