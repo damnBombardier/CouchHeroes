@@ -14,7 +14,7 @@ class Hero(models.Model):
     level = models.PositiveIntegerField(default=1)
     health = models.PositiveIntegerField(default=100)
     max_health = models.PositiveIntegerField(default=100)
-    gold = models.PositiveIntegerField(default=0)
+    gold = models.PositiveIntegerField(default=10) # Начальное золото
     experience = models.PositiveIntegerField(default=0)
     
     # Инвентарь, гильдия, другие состояния - добавить позже
@@ -25,6 +25,7 @@ class Hero(models.Model):
         ('fight', 'Бой'),
         ('quest', 'Квест'),
         ('rest', 'Отдых'),
+        ('dead', 'Мертв'),
         # ... другие состояния ...
     ]
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default='adventure')
@@ -52,28 +53,52 @@ class Hero(models.Model):
         В реальном движке это будет сложнее.
         """
         actions = [
-            f"{self.name} идет по тропе.",
-            f"{self.name} осматривает окрестности.",
-            f"{self.name} находит немного золота!",
-            f"{self.name} сталкивается с монстром!",
-            f"{self.name} отдыхает у костра.",
-            f"{self.name} слышит странный шепот...",
+            f"{self.name} идет по тропе в поисках приключений.",
+            f"{self.name} осматривает окрестности, оглядывая каждый куст.",
+            f"{self.name} находит немного золота! +5 золота.",
+            f"{self.name} сталкивается с монстром! Состояние: Бой.",
+            f"{self.name} отдыхает у костра, восстанавливая силы.",
+            f"{self.name} слышит странный шепот из кустов...",
+            f"{self.name} натыкается на древний артефакт!",
+            f"{self.name} получает задание от таинственного незнакомца.",
+            f"{self.name} участвует в гильдейском турнире.",
+            f"{self.name} отправляется на рыбалку.",
         ]
         return random.choice(actions)
 
     def apply_lightning_strike(self):
         """Логика удара молнии."""
+        if self.state == 'dead':
+            return f"{self.name} уже мертв. Молния пролетает мимо."
         # Пример: останавливает действие или наносит урон
-        self.health = max(0, self.health - 10) # Пример урона
+        damage = 15 # Более сильный удар
+        self.health = max(0, self.health - damage) # Пример урона
         self.save()
-        return f"Молния ударила {self.name}! Здоровье: {self.health}/{self.max_health}"
+        if self.health == 0:
+            self.state = 'dead'
+            self.deaths += 1
+            self.save()
+            return f"Молния сокрушила {self.name}! Герой погиб."
+        return f"Молния ударила {self.name}! Нанесено {damage} урона. Здоровье: {self.health}/{self.max_health}"
 
     def apply_divine_speech(self, message):
         """Логика божественной реплики."""
+        if self.state == 'dead':
+            return f"{self.name} мертв и не может услышать ваши слова."
         # Пример: увеличивает опыт или здоровье
-        self.experience += 5
-        self.health = min(self.max_health, self.health + 5)
+        exp_gain = 7
+        heal_amount = 8
+        self.experience += exp_gain
+        self.health = min(self.max_health, self.health + heal_amount)
         self.save()
-        return f"{self.name} услышал: '{message}'. Получено 5 опыта и 5 здоровья!"
+        return f"{self.name} услышал: '{message}'. Получено {exp_gain} опыта и {heal_amount} здоровья!"
+
+    @classmethod
+    def create_for_user(cls, user):
+        """Создает героя для нового пользователя."""
+        hero_name = f"{user.username}'s Hero"
+        # Можно добавить логику генерации уникального имени, если нужно
+        hero = cls.objects.create(name=hero_name, owner=user)
+        return hero
 
 # Дополнительные модели для событий, инвентаря и т.д. будут добавлены позже.
