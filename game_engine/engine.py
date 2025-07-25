@@ -3,7 +3,7 @@
 import random
 import logging
 from heroes.models import Hero
-from events.models import Quest, HeroQuest # Импортируем новые модели
+from events.models import Quest, HeroQuest, Item, Inventory # Импортируем новые модели
 from django.utils import timezone
 from datetime import timedelta
 
@@ -51,46 +51,18 @@ class GameEngine:
             # Герой отдыхает - восстанавливает здоровье
             if hero.state == 'rest':
                 heal_amount = random.randint(5, 15)
+                # Учитываем защиту от экипировки
+                defense_bonus = hero.equipment.get_total_defense() if hasattr(hero, 'equipment') else 0
+                heal_amount += defense_bonus // 2 # Бонус к восстановлению
+                
                 hero.health = min(hero.max_health, hero.health + heal_amount)
-                hero.state = 'adventure' # После отдыха снова в приключение
+                hero.state = 'adventure'
                 hero.save()
                 return f"{hero.name} отдыхает и восстанавливает {heal_amount} здоровья. Здоровье: {hero.health}/{hero.max_health}"
 
             # Герой в бою
             if hero.state == 'fight':
-                # Простая логика боя
-                damage_to_hero = random.randint(5, 20)
-                damage_to_monster = random.randint(10, 25)
-                
-                hero.health = max(0, hero.health - damage_to_hero)
-                
-                # Проверка, победил ли герой или монстр
-                if random.random() > 0.5: # 50% шанс победы героя
-                    # Герой победил
-                    exp_gain = random.randint(10, 30)
-                    gold_gain = random.randint(1, 10)
-                    hero.experience += exp_gain
-                    hero.gold += gold_gain
-                    hero.monsters_killed += 1
-                    hero.state = 'adventure'
-                    hero.save()
-                    log = f"{hero.name} победил монстра! Получено {exp_gain} опыта и {gold_gain} золота."
-                    
-                    # Проверка на уровень
-                    level_up_log = GameEngine._check_level_up(hero)
-                    if level_up_log:
-                        log += f" {level_up_log}"
-                    return log
-                else:
-                    # Монстр победил или бой продолжается
-                    hero.save()
-                    if hero.health == 0:
-                        hero.state = 'dead'
-                        hero.deaths += 1
-                        hero.save()
-                        return f"{hero.name} был побежден в бою и погиб."
-                    else:
-                        return f"{hero.name} сражается с монстром. Получено {damage_to_hero} урона. Здоровье: {hero.health}/{hero.max_health}"
+                return GameEngine._process_fight(hero) # Вынесли логику боя в отдельный метод
             
             # Герой в состоянии приключения - выполняет случайные действия
             action_log = hero.get_random_action()
@@ -112,6 +84,11 @@ class GameEngine:
                 if new_quest_log:
                     action_log = new_quest_log
                 # Если квест не начался, герой остается в состоянии приключения
+
+            elif "артефакт" in action_log or "предмет" in action_log:
+                found_item_log = GameEngine._find_random_item(hero)
+                if found_item_log:
+                    action_log = found_item_log
             
             elif "рыбалку" in action_log:
                  # Простой пример квеста/действия
@@ -134,6 +111,44 @@ class GameEngine:
         except Exception as e:
             logger.error(f"Ошибка при обработке хода героя {hero.name}: {e}")
             return f"Ошибка при обработке хода героя {hero.name}"
+
+    @staticmethod
+    def _process_fight(hero: Hero):
+        """
+        Обрабатывает один раунд боя.
+        """
+        # Учитываем силу от экипировки
+        power_bonus = hero.equipment.get_total_power() if hasattr(hero, 'equipment') else 0
+        defense_bonus = hero.equipment.get_total_defense() if hasattr(hero, 'equipment') else 0
+        
+        damage_to_hero = max(1, random.randint(5, 20) - defense_bonus // 3) # Защита снижает урон
+        damage_to_monster = random.randint(10, 25) + power_bonus # Сила увеличивает урон
+        
+        hero.health = max(0, hero.health - damage_to_hero)
+        
+        if random.random() > 0.5: # 50% шанс победы героя
+            exp_gain = random.randint(10, 30)
+            gold_gain = random.randint(1, 10)
+            hero.experience += exp_gain
+            hero.gold += gold_gain
+            hero.monsters_killed += 1
+            hero.state = 'adventure'
+            hero.save()
+            log = f"{hero.name} победил монстра! Получено {exp_gain} опыта и {gold_gain} золота."
+            
+            level_up_log = GameEngine._check_level_up(hero)
+            if level_up_log:
+                log += f" {level_up_log}"
+            return log
+        else:
+            hero.save()
+            if hero.health == 0:
+                hero.state = 'dead'
+                hero.deaths += 1
+                hero.save()
+                return f"{hero.name} был побежден в бою и погиб."
+            else:
+                return f"{hero.name} сражается с монстром. Получено {damage_to_hero} урона. Здоровье: {hero.health}/{hero.max_health}"
 
     @staticmethod
     def _start_random_quest(hero: Hero):
@@ -209,6 +224,31 @@ class GameEngine:
             hero.save()
             return f"{hero.name} достигает уровня {hero.level}! Максимальное здоровье увеличено на {hp_increase}."
         return None
+    
+    @staticmethod
+    def _find_random_item(hero: Hero):
+        """
+        Герой находит случайный предмет.
+        """
+        # Простая логика выбора предмета
+        items = list(Item.objects.all())
+        if not items:
+            return None # Нет предметов в базе
+            
+        found_item = random.choice(items)
+        
+        # Проверяем, есть ли уже такой предмет в инвентаре
+        inventory_item, created = Inventory.objects.get_or_create(
+            hero=hero,
+            item=found_item,
+            defaults={'quantity': 1}
+        )
+        
+        if not created:
+            inventory_item.quantity += 1
+            inventory_item.save()
+            
+        return f"{hero.name} находит {found_item.name}! Предмет добавлен в инвентарь."
 
     @staticmethod
     def run_global_events():

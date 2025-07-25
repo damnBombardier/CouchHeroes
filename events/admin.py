@@ -15,3 +15,26 @@ class HeroQuestAdmin(admin.ModelAdmin):
     list_filter = ('status', 'quest')
     search_fields = ('hero__name', 'quest__title')
     readonly_fields = ('created_at', 'updated_at')
+
+@admin.register(Item)
+class ItemAdmin(admin.ModelAdmin):
+    list_display = ('name', 'item_type', 'rarity', 'power', 'defense', 'healing_amount', 'sell_price')
+    list_filter = ('item_type', 'rarity')
+    search_fields = ('name', 'description')
+
+class InventoryAdmin(admin.ModelAdmin):
+    list_display = ('hero', 'item', 'quantity')
+    list_filter = ('item__item_type', 'item__rarity')
+    search_fields = ('hero__name', 'item__name')
+
+# Или используем Inline для отображения в админке героя
+# class InventoryInline(admin.TabularInline):
+#     model = Inventory
+#     extra = 0
+
+admin.site.register(Inventory, InventoryAdmin)
+
+@admin.register(Equipment)
+class EquipmentAdmin(admin.ModelAdmin):
+    list_display = ('hero', 'weapon', 'armor')
+    search_fields = ('hero__name',)

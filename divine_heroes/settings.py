@@ -1,4 +1,3 @@
-# settings.py (фрагмент)
 import os
 from pathlib import Path
 

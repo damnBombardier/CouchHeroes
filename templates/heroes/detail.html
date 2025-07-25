@@ -1,21 +1,33 @@
-<!-- templates/heroes/detail.html -->
-{% extends 'base.html' %}
+<!-- templates/heroes/detail.html (обновленный) -->
+<div class="hero-quests">
+    <h2>Активные квесты:</h2>
+    {% if hero.quests.filter(status='in_progress').exists %}
+        <ul>
+        {% for heroquest in hero.quests.filter(status='in_progress') %}
+            <li>
+                <strong>{{ heroquest.quest.title }}</strong> - 
+                Прогресс: {{ heroquest.progress }}/            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Нет активных квестов.</p>
+    {% endif %}
+</div>
 
-{% block title %}Герой {{ hero.name }}{% endblock %}
-
-{% block content %}
-<h1>Ваш герой: {{ hero.name }}</h1>
-
-<div class="hero-stats">
-    <h2>Статистика:</h2>
-    <p><strong>Уровень:</strong> {{ hero.level }}</p>
-    <p><strong>Здоровье:</strong> {{ hero.health }} / {{ hero.max_health }}</p>
-    <p><strong>Золото:</strong> {{ hero.gold }}</p>
-    <p><strong>Опыт:</strong> {{ hero.experience }}</p>
-    <p><strong>Состояние:</strong> {{ hero.get_state_display }}</p>
-    <p><strong>Локация:</strong> {{ hero.location }}</p>
-    <p><strong>Убито монстров:</strong> {{ hero.monsters_killed }}</p>
-    <p><strong>Смертей:</strong> {{ hero.deaths }}</p>
+<div class="hero-inventory">
+    <h2>Инвентарь:</h2>
+    {% if hero.inventory_items.all %}
+        <ul>
+        {% for inv_item in hero.inventory_items.all %}
+            <li>
+                {{ inv_item.item.name }} (x{{ inv_item.quantity }}) - 
+                <em>{{ inv_item.item.get_item_type_display }}, {{ inv_item.item.get_rarity_display }}</em>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Инвентарь пуст.</p>
+    {% endif %}
 </div>
 
 <div class="hero-log">

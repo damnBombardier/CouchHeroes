@@ -1,0 +1,58 @@
+<!-- templates/events/inventory.html (новый файл) -->
+{% extends 'base.html' %}
+
+{% block title %}Инвентарь {{ hero.name }}{% endblock %}
+
+{% block content %}
+<h1>Инвентарь героя: {{ hero.name }}</h1>
+
+<div class="hero-equipment">
+    <h2>Экипировка:</h2>
+    <ul>
+        <li><strong>Оружие:</strong> 
+            {% if equipment.weapon %}
+                {{ equipment.weapon.name }} 
+                (<a href="{% url 'events:unequip_item' 'weapon' %}">Снять</a>)
+            {% else %}
+                Нет
+            {% endif %}
+        </li>
+        <li><strong>Доспехи:</strong> 
+            {% if equipment.armor %}
+                {{ equipment.armor.name }} 
+                (<a href="{% url 'events:unequip_item' 'armor' %}">Снять</a>)
+            {% else %}
+                Нет
+            {% endif %}
+        </li>
+    </ul>
+</div>
+
+<div class="hero-inventory">
+    <h2>Предметы:</h2>
+    {% if inventory_items %}
+        <ul>
+        {% for inv_item in inventory_items %}
+            <li>
+                <strong>{{ inv_item.item.name }}</strong> (x{{ inv_item.quantity }}) - 
+                <em>{{ inv_item.item.get_item_type_display }}, {{ inv_item.item.get_rarity_display }}</em>
+                <br>
+                <small>{{ inv_item.item.description }}</small>
+                <br>
+                {% if inv_item.item.item_type == 'weapon' or inv_item.item.item_type == 'armor' %}
+                    <a href="{% url 'events:equip_item' inv_item.item.id %}">Экипировать</a>
+                {% elif inv_item.item.item_type == 'healing' %}
+                    <a href="{% url 'events:use_item' inv_item.item.id %}">Использовать</a> <!-- Добавлено -->
+                {% endif %}
+                <!-- Можно добавить другие действия в будущем -->
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Инвентарь пуст.</p>
+    {% endif %}
+</div>
+
+<a href="{% url 'heroes:detail' %}">Назад к герою</a>
+
+{% endblock %}
