@@ -1,0 +1,53 @@
+<!-- templates/events/user_quests_list.html (новый файл) -->
+{% extends 'base.html' %}
+
+{% block title %}Мои квесты{% endblock %}
+
+{% block content %}
+<h1>Квесты, созданные мной</h1>
+
+<a href="{% url 'events:create_user_quest' %}" class="btn btn-success mb-3">Создать новый квест</a>
+
+{% if page_obj %}
+    <ul class="list-group">
+    {% for quest in page_obj %}
+        <li class="list-group-item">
+            <h5>{{ quest.title }}</h5>
+            <p class="mb-1">{{ quest.description|truncatewords:20 }}</p>
+            <small class="text-muted">
+                Уровень: {{ quest.required_level }} | 
+                Награда: {{ quest.reward_experience }} опыта, {{ quest.reward_gold }} золота |
+                Статус: 
+                {% if quest.is_approved %}
+                    <span class="text-success">Одобрен</span>
+                {% else %}
+                    <span class="text-warning">На модерации</span>
+                {% endif %}
+            </small>
+        </li>
+    {% endfor %}
+    </ul>
+
+    <!-- Пагинация -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Предыдущая</a></li>
+            {% endif %}
+            
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Следующая</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+{% else %}
+    <p>Вы еще не создали ни одного квеста.</p>
+{% endif %}
+
+<a href="{% url 'events:public_quests_list' %}">Посмотреть все одобренные квесты</a>
+{% endblock %}

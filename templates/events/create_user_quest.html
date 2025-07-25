@@ -1,0 +1,16 @@
+<!-- templates/events/create_user_quest.html (новый файл) -->
+{% extends 'base.html' %}
+
+{% block title %}Создать квест{% endblock %}
+
+{% block content %}
+<h1>Создать новый квест</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Отправить на модерацию</button>
+    <a href="{% url 'events:user_quests_list' %}" class="btn btn-secondary">Отмена</a>
+</form>
+
+{% endblock %}

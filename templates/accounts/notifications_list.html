@@ -1,0 +1,57 @@
+<!-- templates/accounts/notifications_list.html (новый файл) -->
+{% extends 'base.html' %}
+
+{% block title %}Мои уведомления{% endblock %}
+
+{% block content %}
+<h1>Мои уведомления</h1>
+
+{% if page_obj %}
+    <ul class="list-group">
+    {% for notification in page_obj %}
+        <li class="list-group-item {% if not notification.is_read %}list-group-item-info{% endif %}">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">
+                    {% if notification.notification_type == 'info' %}
+                        <span class="badge bg-info">Инфо</span>
+                    {% elif notification.notification_type == 'success' %}
+                        <span class="badge bg-success">Успех</span>
+                    {% elif notification.notification_type == 'warning' %}
+                        <span class="badge bg-warning">Внимание</span>
+                    {% elif notification.notification_type == 'danger' %}
+                        <span class="badge bg-danger">Ошибка</span>
+                    {% endif %}
+                    {{ notification.title }}
+                </h5>
+                <small>{{ notification.created_at|timesince }} назад</small>
+            </div>
+            <p class="mb-1">{{ notification.message }}</p>
+            {% if notification.link %}
+                <small><a href="{{ notification.link }}">Подробнее</a></small>
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ul>
+
+    <!-- Пагинация -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Предыдущая</a></li>
+            {% endif %}
+            
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Следующая</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+{% else %}
+    <p>У вас пока нет уведомлений.</p>
+{% endif %}
+
+{% endblock %}

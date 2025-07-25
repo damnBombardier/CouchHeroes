@@ -5,8 +5,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from .forms import CustomUserCreationForm, ProfileUpdateForm
-from .models import PlayerProfile
-from heroes.models import Hero # Импортируем модель героя
+from .models import PlayerProfile, Notification # Добавлен импорт Notification
+from heroes.models import Hero
 
 def register(request):
     if request.method == 'POST':
@@ -53,3 +53,29 @@ def edit_profile(request):
         'form': form
     }
     return render(request, 'accounts/edit_profile.html', context)
+
+@login_required
+def notifications_list(request):
+    """Отображает список уведомлений пользователя."""
+    user_notifications = request.user.notifications.all()
+    
+    # Пагинация
+    paginator = Paginator(user_notifications, 10) # 10 уведомлений на страницу
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Помечаем непрочитанные уведомления как прочитанные при просмотре списка
+    unread_notifications = user_notifications.filter(is_read=False)
+    for notif in unread_notifications:
+        notif.mark_as_read()
+    
+    return render(request, 'accounts/notifications_list.html', {'page_obj': page_obj})
+
+@login_required
+def mark_notification_read(request, notification_id):
+    """Помечает конкретное уведомление как прочитанное."""
+    notification = get_object_or_404(Notification, id=notification_id, recipient=request.user)
+    notification.mark_as_read()
+    # Перенаправляем обратно на список или по ссылке из уведомления
+    next_url = request.GET.get('next', 'accounts:notifications_list')
+    return redirect(next_url)

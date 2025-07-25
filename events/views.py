@@ -3,7 +3,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Item, Inventory, Equipment
+from django.core.paginator import Paginator
+from .models import Item, Inventory, Equipment, Quest, HeroQuest
+from .forms import UserQuestForm
 from heroes.models import Hero
 
 @login_required
@@ -61,4 +63,43 @@ def use_item(request, item_id):
     
     return redirect('events:inventory')
 
-# TODO: Добавить представления для использования предметов (например, лечащих)
+@login_required
+def create_user_quest(request):
+    """Позволяет пользователю создать свой квест."""
+    if request.method == 'POST':
+        form = UserQuestForm(request.POST)
+        if form.is_valid():
+            quest = form.save(commit=False)
+            quest.creator = request.user
+            quest.quest_type = 'user_generated'
+            quest.is_approved = False # Требует модерации
+            quest.save()
+            messages.success(request, 'Ваш квест отправлен на модерацию. Спасибо за вклад!')
+            return redirect('events:user_quests_list') # Перенаправляем на список своих квестов
+    else:
+        form = UserQuestForm()
+    return render(request, 'events/create_user_quest.html', {'form': form})
+
+@login_required
+def user_quests_list(request):
+    """Отображает список квестов, созданных текущим пользователем."""
+    user_quests = Quest.objects.filter(creator=request.user).order_by('-created_at')
+    
+    # Пагинация (опционально, но полезно)
+    paginator = Paginator(user_quests, 10) # 10 квестов на страницу
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'events/user_quests_list.html', {'page_obj': page_obj})
+
+def public_quests_list(request):
+    """Отображает список одобренных квестов (системных и пользовательских)."""
+    # Показываем только одобренные квесты, сортируем по дате создания
+    approved_quests = Quest.objects.filter(is_approved=True).order_by('-created_at')
+    
+    # Пагинация
+    paginator = Paginator(approved_quests, 15) # 15 квестов на страницу
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'events/public_quests_list.html', {'page_obj': page_obj})

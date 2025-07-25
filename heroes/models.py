@@ -9,7 +9,11 @@ class Hero(models.Model):
     """
     name = models.CharField(max_length=100, unique=True, help_text="Имя героя")
     owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name='hero')
-    
+    guild_membership = models.OneToOneField('guilds.GuildMembership', on_delete=models.SET_NULL, null=True, blank=True, related_name='hero')
+    # Связь с гильдией будет через GuildMembership
+    # На самом деле, связь уже определена в GuildMembership как OneToOneField(hero)
+    # Поэтому Hero автоматически получает related_name='guild_membership'
+
     # Атрибуты героя
     level = models.PositiveIntegerField(default=1)
     health = models.PositiveIntegerField(default=100)

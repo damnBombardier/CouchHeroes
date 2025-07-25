@@ -62,9 +62,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'accounts', # Наше приложение для аккаунтов
     'heroes',   # Наше приложение для героев
     'events',   # Наше приложение для событий
+    'guilds',   # Наше приложение для гильдий
     # 'game_engine', # Модуль движка (не обязательно как приложение)
 ]
 

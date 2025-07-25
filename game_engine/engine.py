@@ -6,6 +6,7 @@ from heroes.models import Hero
 from events.models import Quest, HeroQuest, Item, Inventory # Импортируем новые модели
 from django.utils import timezone
 from datetime import timedelta
+from accounts.services import send_hero_notification # Добавлен импорт
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +137,13 @@ class GameEngine:
             hero.save()
             log = f"{hero.name} победил монстра! Получено {exp_gain} опыта и {gold_gain} золота."
             
+            send_hero_notification(
+                hero,
+                title="Победа в бою!",
+                message=f"{hero.name} победил монстра и получил {exp_gain} опыта и {gold_gain} золота!",
+                notification_type='success'
+            )
+
             level_up_log = GameEngine._check_level_up(hero)
             if level_up_log:
                 log += f" {level_up_log}"
@@ -147,6 +155,16 @@ class GameEngine:
                 hero.deaths += 1
                 hero.save()
                 return f"{hero.name} был побежден в бою и погиб."
+            
+                # Отправляем уведомление о смерти
+                send_hero_notification(
+                    hero,
+                    title="Ваш герой погиб!",
+                    message=death_message,
+                    notification_type='danger'
+                )
+             
+                return death_message
             else:
                 return f"{hero.name} сражается с монстром. Получено {damage_to_hero} урона. Здоровье: {hero.health}/{hero.max_health}"
 
@@ -189,17 +207,34 @@ class GameEngine:
         hero_quest.save()
         
         # Выдаем награду
-        hero.experience += quest.reward_experience
-        hero.gold += quest.reward_gold
+        exp_gain = quest.reward_experience
+        gold_gain = quest.reward_gold
+        hero.experience += exp_gain
+        hero.gold += gold_gain
         hero.quests_completed += 1
         hero.save()
         
         log = f"{hero.name} успешно завершает квест '{quest.title}'! Получено {quest.reward_experience} опыта и {quest.reward_gold} золота."
         
+# Отправляем уведомление игроку
+        send_hero_notification(
+            hero,
+            title=f"Квест завершен: {quest.title}",
+            message=f"Ваш герой {hero.name} завершил квест '{quest.title}' и получил {exp_gain} опыта и {gold_gain} золота!",
+            notification_type='success'
+        )
+
         # Проверка на уровень
         level_up_log = GameEngine._check_level_up(hero)
         if level_up_log:
             log += f" {level_up_log}"
+            # Отправляем отдельное уведомление о повышении уровня
+            send_hero_notification(
+                hero,
+                title=f"{hero.name} достиг нового уровня!",
+                message=level_up_log,
+                notification_type='success'
+            )
             
         # После завершения квеста герой снова в приключениях
         hero.state = 'adventure'

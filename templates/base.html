@@ -27,15 +27,25 @@
         <h1>Диванные герои</h1>
         <nav>
     <a href="{% url 'heroes:detail' %}">Мой Герой</a>
-    <a href="{% url 'events:inventory' %}">Инвентарь</a> <!-- Добавлено -->
+    <a href="{% url 'events:inventory' %}">Инвентарь</a>
+    <a href="{% url 'events:public_quests_list' %}">Квесты</a>
     {% if user.is_authenticated %}
+        <!-- Счетчик непрочитанных уведомлений -->
+        {% with unread_count=user.notifications.filter(is_read=False).count %}
+            <a href="{% url 'accounts:notifications_list' %}">
+                Уведомления
+                {% if unread_count > 0 %}
+                    <span class="badge bg-danger">{{ unread_count }}</span>
+                {% endif %}
+            </a>
+        {% endwith %}
         <a href="{% url 'accounts:profile' user.username %}">Профиль</a>
         <a href="{% url 'accounts:logout' %}">Выход</a>
     {% else %}
         <a href="{% url 'accounts:login' %}">Вход</a>
         <a href="{% url 'accounts:register' %}">Регистрация</a>
     {% endif %}
-</nav>
+        </nav>
     </header>
 
     <div class="container">
